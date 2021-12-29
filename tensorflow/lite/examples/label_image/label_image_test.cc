@@ -31,7 +31,7 @@ TEST(LabelImageTest, GraceHopper) {
   Settings s;
   s.input_type = kTfLiteUInt8;
   std::vector<uint8_t> input =
-      read_bmp(lena_file, &width, &height, &channels, &s);
+      read_bmp(lena_file, &width, &height, &channels, &s, false);
   ASSERT_EQ(height, 606);
   ASSERT_EQ(width, 517);
   ASSERT_EQ(channels, 3);

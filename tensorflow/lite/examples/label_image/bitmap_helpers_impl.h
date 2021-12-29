@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+
 #ifndef TENSORFLOW_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_IMPL_H_
 #define TENSORFLOW_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_IMPL_H_
 
@@ -22,6 +23,7 @@ limitations under the License.
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/string_util.h"
+#include "tensorflow/lite/examples/label_image/log.h"
 
 namespace tflite {
 namespace label_image {
@@ -35,9 +37,12 @@ void resize(T* out, uint8_t* in, int image_height, int image_width,
 
   int base_index = 0;
 
+  if (s->verbose) LOG(INFO) << "<<resize in>>"; 
   // two inputs: input and new_sizes
+  if (s->verbose) LOG(INFO) << "two inputs: input and new_sizes"; 
   interpreter->AddTensors(2, &base_index);
   // one output
+  if (s->verbose) LOG(INFO) << "one output"; 
   interpreter->AddTensors(1, &base_index);
   // set input and output tensors
   interpreter->SetInputs({0, 1});
@@ -57,6 +62,7 @@ void resize(T* out, uint8_t* in, int image_height, int image_width,
   ops::builtin::BuiltinOpResolver resolver;
   const TfLiteRegistration* resize_op =
       resolver.FindOp(BuiltinOperator_RESIZE_BILINEAR, 1);
+  if (s->verbose) LOG(INFO) << "resolver find OP done"; 
   auto* params = reinterpret_cast<TfLiteResizeBilinearParams*>(
       malloc(sizeof(TfLiteResizeBilinearParams)));
   params->align_corners = false;
@@ -66,6 +72,7 @@ void resize(T* out, uint8_t* in, int image_height, int image_width,
 
   interpreter->AllocateTensors();
 
+  if (s->verbose) LOG(INFO) << "before fill input image"; 
   // fill input image
   // in[] are integers, cannot do memcpy() directly
   auto input = interpreter->typed_tensor<float>(0);
@@ -77,11 +84,13 @@ void resize(T* out, uint8_t* in, int image_height, int image_width,
   interpreter->typed_tensor<int>(1)[0] = wanted_height;
   interpreter->typed_tensor<int>(1)[1] = wanted_width;
 
+  if (s->verbose) LOG(INFO) << "before interpreter->Invoke"; 
   interpreter->Invoke();
 
   auto output = interpreter->typed_tensor<float>(2);
   auto output_number_of_pixels = wanted_height * wanted_width * wanted_channels;
 
+  if (s->verbose) LOG(INFO) << "output_number_of_pixels: " << output_number_of_pixels; 
   for (int i = 0; i < output_number_of_pixels; i++) {
     switch (s->input_type) {
       case kTfLiteFloat32:

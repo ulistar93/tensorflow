@@ -29,8 +29,10 @@ namespace tflite {
 namespace label_image {
 
 std::vector<uint8_t> decode_bmp(const uint8_t* input, int row_size, int width,
-                                int height, int channels, bool top_down) {
-  std::vector<uint8_t> output(height * width * channels);
+                                int height, int channels, bool top_down, bool rgb2gray) {
+  int out_channels = channels;
+  if (rgb2gray) out_channels = 1;
+  std::vector<uint8_t> output(height * width * out_channels);
   for (int i = 0; i < height; i++) {
     int src_pos;
     int dst_pos;
@@ -42,17 +44,25 @@ std::vector<uint8_t> decode_bmp(const uint8_t* input, int row_size, int width,
         src_pos = i * row_size + j * channels;
       }
 
-      dst_pos = (i * width + j) * channels;
+      dst_pos = (i * width + j) * out_channels;
 
       switch (channels) {
         case 1:
           output[dst_pos] = input[src_pos];
           break;
         case 3:
-          // BGR -> RGB
-          output[dst_pos] = input[src_pos + 2];
-          output[dst_pos + 1] = input[src_pos + 1];
-          output[dst_pos + 2] = input[src_pos];
+          if (out_channels == 1){
+            // BGR -> Gray
+            // ITU-R BT.601
+            output[dst_pos] = static_cast<uint8_t>(0.114 * input[src_pos] + 0.587 * input[src_pos + 1] + 0.299 * input[src_pos + 2]);
+          }else{
+            // out_channels == 3
+            // BGR -> RGB
+            output[dst_pos] = input[src_pos + 2];
+            output[dst_pos + 1] = input[src_pos + 1];
+            output[dst_pos + 2] = input[src_pos];
+          }
+
           break;
         case 4:
           // BGRA -> RGBA
@@ -71,7 +81,7 @@ std::vector<uint8_t> decode_bmp(const uint8_t* input, int row_size, int width,
 }
 
 std::vector<uint8_t> read_bmp(const std::string& input_bmp_name, int* width,
-                              int* height, int* channels, Settings* s) {
+                              int* height, int* channels, Settings* s, bool rgb2gray) {
   int begin, end;
 
   std::ifstream file(input_bmp_name, std::ios::in | std::ios::binary);
@@ -99,8 +109,8 @@ std::vector<uint8_t> read_bmp(const std::string& input_bmp_name, int* width,
   *channels = bpp / 8;
 
   if (s->verbose)
-    LOG(INFO) << "width, height, channels: " << *width << ", " << *height
-              << ", " << *channels;
+    LOG(INFO) << "header_size, width, height, channels: " << header_size << ", "
+      << *width << ", " << *height << ", " << *channels;
 
   // there may be padding bytes when the width is not a multiple of 4 bytes
   // 8 * channels == bits per pixel
@@ -113,7 +123,7 @@ std::vector<uint8_t> read_bmp(const std::string& input_bmp_name, int* width,
   // Decode image, allocating tensor once the image size is known
   const uint8_t* bmp_pixels = &img_bytes[header_size];
   return decode_bmp(bmp_pixels, row_size, *width, abs(*height), *channels,
-                    top_down);
+                    top_down, rgb2gray);
 }
 
 }  // namespace label_image
