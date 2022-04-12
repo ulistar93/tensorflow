@@ -1,6 +1,6 @@
 #!/bin/bash
-#git fetch upstream
-update_branchs="master nightly r2.9 r2.8 r2.7 r2.6 r2.5"
+# git fetch upstream to origin
+# please run sh in above upper location
 
 #Black        0;30     Dark Gray     1;30
 #Red          0;31     Light Red     1;31
@@ -19,17 +19,17 @@ LC='\033[1;36m'
 NC='\033[0m' # No Color
 
 fetch_upstream_to_origin(){
-  git checkout $1
-  git pull $1
-  git merge upstream/$1
-  git push origin $1
+  git checkout -B $1 -t upstream/$1
+  git branch --set-upstream-to origin/$1 $1
+  git push -f origin
 }
 
+target_dir=$1
+cd $target_dir
 origin_branchs=`git branch -a | grep origin | grep -v HEAD`
 upstream_branchs=`git branch -a | grep upstream`
-#echo $origin_branchs
-#echo $upstream_branchs
 
+curr_branch=`git branch | grep '*' | awk '{print $2}'`
 for bn in $origin_branchs
 do
   bn_name=`echo $bn | awk -F'/' '{print $3}'`
@@ -43,10 +43,12 @@ do
     then
       echo -e "${LR}$bn${NC} ${LC}passed(up-to-date)${NC}"
     else
-      echo -e "${LR}$bn${NC}${OG}:$origin_commit${NC} -> ${LR}$up_bn${NC}${OG}:$upstream_commit${NC} ${LG}update${NC}"
       # do update
+      echo -e "${LR}$bn${NC}${OG}:$origin_commit${NC} -> ${LR}$up_bn${NC}${OG}:$upstream_commit${NC} ${LG}update${NC}"
+      fetch_upstream_to_origin $bn_name
     fi
   else
     echo -e "${LR}$bn${NC} ${R}not exist in upstream${NC}"
   fi
 done
+git checkout $curr_branch
