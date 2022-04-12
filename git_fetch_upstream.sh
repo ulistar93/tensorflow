@@ -19,9 +19,9 @@ LC='\033[1;36m'
 NC='\033[0m' # No Color
 
 fetch_upstream_to_origin(){
-  git checkout -B $1 -t upstream/$1
-  git branch --set-upstream-to origin/$1 $1
-  git push -f origin
+  git checkout -B $1 -t upstream/$1 -q
+  git branch --set-upstream-to origin/$1 $1 -q
+  git push -f origin -q
 }
 
 target_dir=$1
